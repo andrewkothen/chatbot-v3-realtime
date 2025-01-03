@@ -1,6 +1,5 @@
 const socket = io();
 
-// DOM Elements
 const transcriptionDiv = document.getElementById('transcription');
 const floatingOrb = document.getElementById('floatingOrb');
 const micIcon = document.getElementById('micIcon');
@@ -9,36 +8,86 @@ const setSystemMessageBtn = document.getElementById('setSystemMessage');
 
 let isRecording = false;
 let recognition;
-let botResponseBuffer = ''; // Buffer for incremental responses
 
-// Append messages to the transcription div
+// Audio context and queue for streaming audio responses
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+const audioQueue = [];
+let isPlaying = false;
+
+// Function to play audio chunks
+function playAudioChunk(chunk) {
+    try {
+        const audioBuffer = audioContext.createBuffer(1, chunk.length, audioContext.sampleRate);
+        const channelData = audioBuffer.getChannelData(0);
+
+        for (let i = 0; i < chunk.length; i++) {
+            channelData[i] = chunk[i] / 32768; // Convert pcm16 to Float32
+        }
+
+        const bufferSource = audioContext.createBufferSource();
+        bufferSource.buffer = audioBuffer;
+        bufferSource.connect(audioContext.destination);
+        bufferSource.start();
+
+        bufferSource.onended = () => {
+            isPlaying = false;
+            if (audioQueue.length > 0) {
+                playAudioChunk(audioQueue.shift());
+            }
+        };
+    } catch (error) {
+        console.error("Error playing audio chunk:", error);
+    }
+}
+
+function queueAudioChunk(chunk) {
+    audioQueue.push(chunk);
+    if (!isPlaying) {
+        isPlaying = true;
+        playAudioChunk(audioQueue.shift());
+    }
+}
+
+// Append messages to the chat transcription
 function appendTranscription(text) {
     const p = document.createElement('p');
     p.innerHTML = text;
     transcriptionDiv.appendChild(p);
-    transcriptionDiv.scrollTop = transcriptionDiv.scrollHeight;
+    transcriptionDiv.scrollTo({
+        top: transcriptionDiv.scrollHeight,
+        behavior: 'smooth',
+    });
 }
 
-// Handle incoming bot responses
+// Handle bot text responses
 socket.on('bot-response', (data) => {
-    console.log('Appending bot response:', data);
-    botResponseBuffer += data; // Append token to buffer
-    appendTranscription(`<strong>Bot:</strong> ${botResponseBuffer}`); // Update UI incrementally
+    if (!document.getElementById('loading-indicator')) {
+        const loading = document.createElement('div');
+        loading.id = 'loading-indicator';
+        loading.innerText = 'Bot is typing...';
+        transcriptionDiv.appendChild(loading);
+    }
+    appendTranscription(`<strong>Bot:</strong> ${data}`);
 });
 
-// Handle end of bot responses
-socket.on('bot-response-end', () => {
-    console.log('Bot response ended.');
-    botResponseBuffer = ''; // Reset buffer
+socket.on('bot-response-end', (finalText) => {
+    const loading = document.getElementById('loading-indicator');
+    if (loading) loading.remove();
+    appendTranscription(`<strong>Final Bot Response:</strong> ${finalText}`);
 });
 
-// Optional: Handle received system message
-socket.on('set-system-message', (message) => {
-    console.log(`System message received from server: ${message}`);
+// Handle bot audio responses
+socket.on('bot-audio', (chunk) => {
+    const audioData = Uint8Array.from(atob(chunk), c => c.charCodeAt(0));
+    queueAudioChunk(new Int16Array(audioData.buffer));
 });
 
-// Log connection status
-socket.on('connect', () => console.log('Connected to server via Socket.io'));
+socket.on('bot-audio-end', () => {
+    console.log('Audio response completed.');
+});
+
+// Connection logs
+socket.on('connect', () => console.log('Connected to server'));
 socket.on('disconnect', () => console.log('Disconnected from server'));
 
 // Set system message
@@ -49,21 +98,20 @@ setSystemMessageBtn.addEventListener('click', () => {
         appendTranscription(`<strong>System:</strong> ${systemMessage}`);
         systemMessageTextarea.value = '';
     } else {
-        alert('Please enter a system message to define the bot\'s personality.');
+        alert('Please enter a system message.');
     }
 });
 
-// Initialize Speech Recognition
+// Initialize speech recognition
 function initSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-        alert('Your browser does not support Speech Recognition. Please use Chrome or Edge.');
+        alert('Speech recognition is not supported in this browser. Please use the latest version of Chrome or Edge.');
         return;
     }
 
     recognition = new SpeechRecognition();
     recognition.continuous = true;
-    recognition.interimResults = false;
     recognition.lang = 'en-US';
 
     recognition.onresult = (event) => {
@@ -75,7 +123,7 @@ function initSpeechRecognition() {
     };
 
     recognition.onerror = (event) => {
-        appendTranscription('<span class="text-danger">Error: Speech recognition failed.</span>');
+        appendTranscription('<span class="text-danger">Speech recognition error occurred.</span>');
     };
 
     recognition.onend = () => {
@@ -83,7 +131,7 @@ function initSpeechRecognition() {
     };
 }
 
-// Toggle recording
+// Toggle speech recognition on mic click
 floatingOrb.addEventListener('click', () => {
     if (!recognition) initSpeechRecognition();
 
@@ -96,6 +144,5 @@ floatingOrb.addEventListener('click', () => {
         floatingOrb.classList.add('active');
         micIcon.src = 'mic-active.png';
     }
-
     isRecording = !isRecording;
 });

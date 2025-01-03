@@ -1,0 +1,189 @@
+/* Font Weight Classes */
+.lato-thin {
+    font-family: "Lato", sans-serif;
+    font-weight: 100;
+    font-style: normal;
+}
+
+.lato-light {
+    font-family: "Lato", sans-serif;
+    font-weight: 300;
+    font-style: normal;
+}
+
+.lato-regular {
+    font-family: "Lato", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+}
+
+.lato-bold {
+    font-family: "Lato", sans-serif;
+    font-weight: 700;
+    font-style: normal;
+}
+
+/* Body Styling */
+.body {
+    font-family: "Lato", sans-serif;
+    font-weight: 400;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+/* Header Styling */
+h1 {
+    font-weight: 700;
+    color: #333;
+}
+
+/* Button Styling */
+.btn {
+    appearance: none;
+    background-color: transparent;
+    border: 2px solid #1A1A1A;
+    border-radius: 30px;
+    font-weight: 400;
+    box-sizing: border-box;
+    color: #2B2B2B;
+    cursor: pointer;
+    display: inline-block;
+    font-size: 16px;
+    line-height: normal;
+    margin: 0;
+    min-height: 60px;
+    min-width: 0;
+    outline: none;
+    padding: 1rem 1.75rem;
+    text-align: center;
+    text-decoration: none;
+    transition: all 300ms cubic-bezier(.23, 1, 0.32, 1);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    width: 100%;
+    will-change: transform;
+}
+
+.btn:disabled {
+    pointer-events: none;
+}
+
+.btn:hover {
+    color: #fff;
+    background-color: #1A1A1A;
+    box-shadow: rgba(0, 0, 0, 0.25) 0 8px 15px;
+    transform: translateY(-2px);
+}
+
+.btn:active {
+    box-shadow: none;
+    transform: translateY(0);
+}
+
+/* Controls Styling */
+.controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+/* System Message Textarea Styling */
+#systemMessage {
+    width: 100%;
+    max-width: 600px;
+    height: 100px;
+    padding: 10px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    resize: vertical;
+    font-family: "Lato", sans-serif;
+    font-weight: 300;
+}
+
+/* Set System Message Button Styling */
+#setSystemMessage {
+    padding: 10px 20px;
+    margin-top: 10px;
+    cursor: pointer;
+    background-color: #03DAC6;
+    color: #fff;
+    border: none;
+    border-radius: 30px;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+#setSystemMessage:hover {
+    background-color: #3700b3;
+}
+
+/* Transcription Styling */
+.transcription {
+    width: 100%;
+    max-width: 800px;
+    height: 300px;
+    margin: 0 auto;
+    padding: 10px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    overflow-y: scroll;
+    border-radius: 4px;
+    font-family: "Lato", sans-serif;
+    font-weight: 400;
+}
+
+.transcription p {
+    margin: 5px 0;
+}
+
+/* Floating Orb Styles */
+#floatingOrb {
+    width: 80px;
+    height: 80px;
+    background-color: #03DAC6;
+    border-radius: 50%;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    /* Removed fixed positioning to allow natural placement */
+}
+
+#floatingOrb.active {
+    background-color: #b00020;
+    transform: scale(1.1);
+}
+
+#floatingOrb img {
+    width: 30px;
+    height: 30px;
+    filter: invert(1) brightness(2);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    #systemMessage {
+        max-width: 100%;
+    }
+
+    .transcription {
+        max-width: 100%;
+    }
+
+    #floatingOrb {
+        width: 50px;
+        height: 50px;
+    }
+
+    #floatingOrb img {
+        width: 25px;
+        height: 25px;
+    }
+}
+
+

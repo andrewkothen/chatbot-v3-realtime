@@ -12,18 +12,63 @@ const io = new Server(server);
 
 app.use(express.static('public'));
 
+// State to manage response locks per client
+const sessionLocks = new Map();
+
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
-    socket.on('user-audio-chunk', (chunk) => {
-        if (socket.ws && socket.ws.readyState === WebSocket.OPEN) {
-            socket.ws.send(chunk); // Send audio chunk directly to OpenAI
+    // Initialize lock state for this client
+    sessionLocks.set(socket.id, { isResponseInProgress: false });
+
+    socket.on('user-audio-chunk', (base64Chunk) => {
+        const clientState = sessionLocks.get(socket.id);
+        if (!socket.ws || socket.ws.readyState !== WebSocket.OPEN) {
+            console.warn('WebSocket not ready for audio chunks.');
+            return;
         }
+
+        const event = {
+            type: "input_audio_buffer.append",
+            audio: base64Chunk,
+        };
+        socket.ws.send(JSON.stringify(event));
+    });
+
+    socket.on('commit-audio', () => {
+        const clientState = sessionLocks.get(socket.id);
+
+        // If a response is already in progress, reject the commit
+        if (clientState.isResponseInProgress) {
+            console.log('Response in progress. Ignoring commit-audio event.');
+            return;
+        }
+
+        if (!socket.ws || socket.ws.readyState !== WebSocket.OPEN) {
+            console.warn('WebSocket not ready for audio commit.');
+            return;
+        }
+
+        // Mark the session as busy
+        clientState.isResponseInProgress = true;
+
+        const commitEvent = {
+            type: "input_audio_buffer.commit",
+        };
+        socket.ws.send(JSON.stringify(commitEvent));
+
+        const responseEvent = {
+            type: "response.create",
+            response: {
+                modalities: ["audio", "text"],
+            },
+        };
+        socket.ws.send(JSON.stringify(responseEvent));
+
+        console.log('Response created for client:', socket.id);
     });
 
     socket.on('start-session', (systemMessage) => {
-        console.log(`Starting session for ${socket.id}.`);
-
         const url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17";
         const ws = new WebSocket(url, {
             headers: {
@@ -33,47 +78,43 @@ io.on('connection', (socket) => {
         });
 
         ws.on("open", () => {
-            console.log("Connected to OpenAI Realtime API.");
-            const event = {
-                type: "response.create",
-                response: {
-                    modalities: ["audio", "text"], // Request audio and text responses
-                    instructions: systemMessage || "You are a friendly chatbot.",
-                    voice: "alloy", // Valid voice
-                },
-            };
-            ws.send(JSON.stringify(event));
+            console.log("WebSocket connection established for client:", socket.id);
         });
-
+        
         ws.on("message", (data) => {
             const serverEvent = JSON.parse(data);
-            console.log("Received server event:", serverEvent);
-
-            // Forward audio responses
-            if (serverEvent.type === "response.audio.delta" && serverEvent.delta) {
+            const clientState = sessionLocks.get(socket.id);
+        
+            if (serverEvent.type === "response.audio.delta") {
                 socket.emit('bot-audio', serverEvent.delta);
             }
-            if (serverEvent.type === "response.audio.done") {
-                socket.emit('bot-audio-end');
+        
+            if (serverEvent.type === "response.text.delta") {
+                // Emit text delta as partial response
+                socket.emit('bot-response', { type: 'text', data: serverEvent.delta });
             }
-
-            // Handle optional text responses
-            if (serverEvent.type === "response.text.delta" && serverEvent.delta) {
-                socket.emit('bot-response', serverEvent.delta);
+        
+            if (serverEvent.type === "response.done") {
+                // Emit the final text response
+                const fullResponse = serverEvent.response.output[0].text;
+                socket.emit('bot-response-final', fullResponse);
+        
+                // Mark the response as complete
+                clientState.isResponseInProgress = false;
+                console.log('Response completed for client:', socket.id);
             }
         });
+        
 
-        ws.on("close", (code, reason) => {
-            console.log(`WebSocket closed. Code: ${code}, Reason: ${reason?.toString()}`);
-            socket.emit('bot-response-end');
+        ws.on("close", () => {
+            console.log('WebSocket connection closed for client:', socket.id);
         });
 
-        ws.on("error", (error) => {
-            console.error("WebSocket error:", error.message);
-            socket.emit('bot-response', 'Sorry, there was an error processing your request.');
+        ws.on("error", (err) => {
+            console.error('WebSocket error for client:', socket.id, err);
         });
 
-        socket.ws = ws; // Store WebSocket instance for the user
+        socket.ws = ws; // Store WebSocket instance
     });
 
     socket.on('disconnect', () => {
@@ -81,6 +122,7 @@ io.on('connection', (socket) => {
         if (socket.ws) {
             socket.ws.close();
         }
+        sessionLocks.delete(socket.id); // Remove state for this client
     });
 });
 

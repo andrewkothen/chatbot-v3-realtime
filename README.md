@@ -10,7 +10,7 @@ npm start
 
 http://localhost:3000/
 
-In the first box define the robot's personality, this will replace the instructions parameter of the model and properly adjust. 
+In the first box, define the robot's personality. This will replace the model's instructions parameter and properly adjust it. 
 
 (i.e. "You are a friendly chatbot"; "You are a sassy chatbot"; "You are a chatbot that speaks as if it were from medieval times".) 
 

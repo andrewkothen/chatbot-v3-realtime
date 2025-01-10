@@ -177,48 +177,7 @@ function addToTranscription(message, type) {
     }
 
     transcriptionContainer.scrollTop = transcriptionContainer.scrollHeight;
-} function addToConversation(message, type) {
-    const conversationContainer = document.getElementById("conversationHistory");
-    if (!conversationContainer) {
-        console.error("[ERROR] Conversation container not found");
-        return;
-    }
-
-    // Try to append to existing message if it's the same type and recent
-    const lastMessage = conversationContainer.lastElementChild;
-    const isRecent = lastMessage && (Date.now() - (lastMessage.dataset.timestamp || 0) < 1000);
-
-    if (lastMessage && lastMessage.className === `${type}-message` && isRecent) {
-        // Add a line break before the new content
-        const lineBreak = document.createElement('br');
-        lastMessage.appendChild(lineBreak);
-        lastMessage.appendChild(document.createTextNode(message));
-    } else {
-        // Create new message element
-        const messageDiv = document.createElement("div");
-        messageDiv.className = `${type}-message p-2`;
-        messageDiv.dataset.timestamp = Date.now();
-
-        // Add appropriate prefix and styling
-        switch (type) {
-            case "user":
-                messageDiv.innerHTML = `<strong>You:</strong> ${message}`;
-                break;
-            case "assistant":
-                messageDiv.innerHTML = `<strong>Assistant:</strong> ${message}`;
-                break;
-            case "system":
-                messageDiv.innerHTML = `💬 ${message}`;
-                break;
-            default:
-                messageDiv.textContent = message;
-        }
-
-        conversationContainer.appendChild(messageDiv);
-    }
-
-    conversationContainer.scrollTop = conversationContainer.scrollHeight;
-}
+} 
 
 async function disconnectWebRTC() {
     if (disconnectWebRTC.isRunning) {

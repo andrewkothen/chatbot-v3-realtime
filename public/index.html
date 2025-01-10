@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:,">
+
     <title>Realtime Voice-Enabled Chatbot</title>
 
     <!-- Bootstrap CSS -->
@@ -37,9 +39,20 @@
                         Message</button>
                 </div>
 
-                <!-- Transcription / Conversation Display -->
-                <div id="transcription" class="transcription p-3 border rounded bg-light lato-regular mb-4">
-                    <!-- Conversation messages will appear here -->
+                <!-- Status Display  -->
+                <div id="statusHistory" class="statusHistory p-3 border rounded bg-light lato-regular mb-4">
+                    <!-- Status messages will appear here-->
+                </div>
+
+                <div class="row w-100">
+                    <div class="col">
+                        <!-- Conversation History -->
+                        <div id="conversationHistory"
+                            class="conversation-history p-3 border rounded bg-white lato-regular mb-4"
+                            style="height: 200px; overflow-y: auto;">
+                            <!-- Conversation messages will appear here -->
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Centered Floating Orb for Voice Interaction -->
@@ -51,9 +64,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Socket.io -->
-    <script src="/socket.io/socket.io.js"></script>
 
     <!-- Client-side JavaScript -->
     <script src="client.js"></script>

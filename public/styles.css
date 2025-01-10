@@ -120,11 +120,11 @@ h1 {
     background-color: #3700b3;
 }
 
-/* Transcription Styling */
-.transcription {
+/* Status History (formerly statusHistory) */
+#statusHistory {
     width: 100%;
     max-width: 800px;
-    height: 300px;
+    height: 150px;
     margin: 0 auto;
     padding: 10px;
     border: 1px solid #ccc;
@@ -135,8 +135,69 @@ h1 {
     font-weight: 400;
 }
 
-.transcription p {
-    margin: 5px 0;
+#statusHistory .user-message {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #f0f8ff;
+    text-align: right;
+}
+
+#statusHistory .assistant-message {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #f0fff0;
+    text-align: left;
+}
+
+#statusHistory .system-message {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #f5f5f5;
+    text-align: center;
+    font-style: italic;
+}
+
+/* Conversation History (now showing the actual conversation) */
+#conversationHistory {
+    width: 100%;
+    max-width: 800px;
+    height: 200px;
+    margin: 0 auto;
+    padding: 10px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    overflow-y: scroll;
+    border-radius: 4px;
+    font-family: "Lato", sans-serif;
+    font-weight: 400;
+}
+
+#conversationHistory .user-message {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #f0f8ff;
+    text-align: right;
+}
+
+#conversationHistory .assistant-message {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #f0fff0;
+    text-align: left;
+}
+
+#conversationHistory .system-message {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #f5f5f5;
+    text-align: center;
+    font-style: italic;
 }
 
 /* Floating Orb Styles */
@@ -151,11 +212,10 @@ h1 {
     align-items: center;
     justify-content: center;
     transition: background-color 0.3s ease, transform 0.3s ease;
-    /* Removed fixed positioning to allow natural placement */
 }
 
 #floatingOrb.active {
-    background-color: #b00020;
+    background-color: #3700b3;
     transform: scale(1.1);
 }
 
@@ -165,13 +225,37 @@ h1 {
     filter: invert(1) brightness(2);
 }
 
+/* Scrollbar Styling */
+#statusHistory::-webkit-scrollbar,
+#conversationHistory::-webkit-scrollbar {
+    width: 8px;
+}
+
+#statusHistory::-webkit-scrollbar-track,
+#conversationHistory::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+#statusHistory::-webkit-scrollbar-thumb,
+#conversationHistory::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+#statusHistory::-webkit-scrollbar-thumb:hover,
+#conversationHistory::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     #systemMessage {
         max-width: 100%;
     }
 
-    .transcription {
+    #statusHistory,
+    #conversationHistory {
         max-width: 100%;
     }
 
@@ -186,4 +270,7 @@ h1 {
     }
 }
 
-
+#floatingOrb.active, 
+#floatingOrb[style*="background-color: rgb(55, 0, 179)"] {
+    background-color: #3700b3 !important;
+}

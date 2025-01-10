@@ -1,132 +1,64 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const WebSocket = require('ws');
-const dotenv = require('dotenv');
+// server.js
+import express from "express";
+import fetch from "node-fetch";
+import dotenv from "dotenv";
+import path from "path";
+import cors from "cors";
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 dotenv.config();
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+const PORT = process.env.PORT || 3000;
 
-app.use(express.static('public'));
+app.use(cors({
+    origin: "*",
+    methods: ["GET", "POST"],
+    credentials: true
+}));
 
-// State to manage response locks per client
-const sessionLocks = new Map();
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
+// Endpoint to create a session and get ephemeral token
+app.get("/session", async (req, res) => {
+    console.log("[SESSION] Creating new session");
 
-    // Initialize lock state for this client
-    sessionLocks.set(socket.id, { isResponseInProgress: false });
-
-    socket.on('user-audio-chunk', (base64Chunk) => {
-        const clientState = sessionLocks.get(socket.id);
-        if (!socket.ws || socket.ws.readyState !== WebSocket.OPEN) {
-            console.warn('WebSocket not ready for audio chunks.');
-            return;
-        }
-
-        const event = {
-            type: "input_audio_buffer.append",
-            audio: base64Chunk,
-        };
-        socket.ws.send(JSON.stringify(event));
-    });
-
-    socket.on('commit-audio', () => {
-        const clientState = sessionLocks.get(socket.id);
-
-        // If a response is already in progress, reject the commit
-        if (clientState.isResponseInProgress) {
-            console.log('Response in progress. Ignoring commit-audio event.');
-            return;
-        }
-
-        if (!socket.ws || socket.ws.readyState !== WebSocket.OPEN) {
-            console.warn('WebSocket not ready for audio commit.');
-            return;
-        }
-
-        // Mark the session as busy
-        clientState.isResponseInProgress = true;
-
-        const commitEvent = {
-            type: "input_audio_buffer.commit",
-        };
-        socket.ws.send(JSON.stringify(commitEvent));
-
-        const responseEvent = {
-            type: "response.create",
-            response: {
-                modalities: ["audio", "text"],
-            },
-        };
-        socket.ws.send(JSON.stringify(responseEvent));
-
-        console.log('Response created for client:', socket.id);
-    });
-
-    socket.on('start-session', (systemMessage) => {
-        const url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17";
-        const ws = new WebSocket(url, {
+    try {
+        const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
+            method: "POST",
             headers: {
                 "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-                "OpenAI-Beta": "realtime=v1",
+                "Content-Type": "application/json",
             },
+            body: JSON.stringify({
+                model: "gpt-4o-realtime-preview-2024-12-17",
+                voice: "verse",
+            }),
         });
 
-        ws.on("open", () => {
-            console.log("WebSocket connection established for client:", socket.id);
-        });
-        
-        ws.on("message", (data) => {
-            const serverEvent = JSON.parse(data);
-            const clientState = sessionLocks.get(socket.id);
-        
-            if (serverEvent.type === "response.audio.delta") {
-                socket.emit('bot-audio', serverEvent.delta);
-            }
-        
-            if (serverEvent.type === "response.text.delta") {
-                // Emit text delta as partial response
-                socket.emit('bot-response', { type: 'text', data: serverEvent.delta });
-            }
-        
-            if (serverEvent.type === "response.done") {
-                // Emit the final text response
-                const fullResponse = serverEvent.response.output[0].text;
-                socket.emit('bot-response-final', fullResponse);
-        
-                // Mark the response as complete
-                clientState.isResponseInProgress = false;
-                console.log('Response completed for client:', socket.id);
-            }
-        });
-        
+        const data = await response.json();
+        console.log("[SESSION] Response:", data);
 
-        ws.on("close", () => {
-            console.log('WebSocket connection closed for client:', socket.id);
-        });
-
-        ws.on("error", (err) => {
-            console.error('WebSocket error for client:', socket.id, err);
-        });
-
-        socket.ws = ws; // Store WebSocket instance
-    });
-
-    socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
-        if (socket.ws) {
-            socket.ws.close();
+        if (!response.ok) {
+            console.error("[ERROR] Failed to create session:", data);
+            return res.status(response.status).json(data);
         }
-        sessionLocks.delete(socket.id); // Remove state for this client
-    });
+
+        res.json(data);
+    } catch (error) {
+        console.error("[ERROR] Server error:", error);
+        res.status(500).json({
+            error: "Internal server error",
+            message: error.message
+        });
+    }
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+app.listen(PORT, () => {
+    console.log(`[STARTUP] Server running on http://localhost:${PORT}`);
 });
